@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/service/main.dart';
-import 'package:laundry_pos/screens/selector/customer.dart';
+import 'package:laundry_pos/screens/components/customer.dart';
+import 'package:laundry_pos/screens/components/claimable.dart';
+import 'package:laundry_pos/helpers/utils.dart';
+import 'package:laundry_pos/styles.dart';
+import 'package:laundry_pos/helpers/functions.dart';
 
 class CustomOrderScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -34,28 +38,15 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
   double cashGiven = 0;
   bool isRush = false;
   String progressStatus = 'pending';
-
   DateTime? claimableDate;
 
-  /// id, name, price, quantity, type
   List<Map<String, dynamic>> selectedItems = [];
-
   bool showServices = true;
-  String customerSearch = '';
 
   static const double rushFee = 50;
 
   List<Map<String, dynamic>> get filteredCustomers {
-    if (customerSearch.isEmpty) return customers;
-    return customers
-        .where(
-          (c) =>
-              (c['name'] as String).toLowerCase().contains(
-                customerSearch.toLowerCase(),
-              ) ||
-              (c['phone'] as String).contains(customerSearch),
-        )
-        .toList();
+    return customers;
   }
 
   @override
@@ -81,6 +72,7 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
     }
   }
 
+  /// ================= COMPUTED =================
   double get baseTotal {
     return selectedItems.fold(
       0,
@@ -89,23 +81,13 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
   }
 
   double get totalAmount => baseTotal + (isRush ? rushFee : 0);
+  double get balance => calculateBalance(totalAmount, cashGiven);
 
-  double get balance {
-    final b = totalAmount - cashGiven;
-    return b < 0 ? 0 : b;
-  }
-
-  double get change {
-    final c = cashGiven - totalAmount;
-    return c < 0 ? 0 : c;
-  }
-
+  /// ================= ACTIONS =================
   void toggleItem(Map<String, dynamic> item, String type) {
     setState(() {
-      final index = selectedItems.indexWhere(
-        (i) => i['id'] == item['id'] && i['type'] == type,
-      );
-
+      final index =
+          selectedItems.indexWhere((i) => i['id'] == item['id'] && i['type'] == type);
       if (index >= 0) {
         selectedItems.removeAt(index);
       } else {
@@ -120,13 +102,10 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
     });
   }
 
-  void updateQuantity(String id, String type, String value) {
-    final q = int.tryParse(value) ?? 1;
+  void updateQuantity(String id, int value) {
     setState(() {
-      final item = selectedItems.firstWhere(
-        (i) => i['id'] == id && i['type'] == type,
-      );
-      item['quantity'] = q < 1 ? 1 : q;
+      final p = selectedItems.firstWhere((x) => x['id'] == id);
+      p['quantity'] = value < 1 ? 1 : value;
     });
   }
 
@@ -141,21 +120,13 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
 
     if (picked != null) {
       setState(() {
-        claimableDate = DateTime(
-          picked.year,
-          picked.month,
-          picked.day,
-          17, // default 5PM claim time
-        );
+        claimableDate = DateTime(picked.year, picked.month, picked.day, 17);
       });
     }
   }
 
   Future<void> submitOrder() async {
-    if (selectedCustomerId == null ||
-        selectedItems.isEmpty ||
-        claimableDate == null ||
-        submitting) {
+    if (selectedCustomerId == null || selectedItems.isEmpty || claimableDate == null || submitting) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all required fields')),
       );
@@ -164,14 +135,14 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
 
     setState(() => submitting = true);
 
-    final items = selectedItems.map((i) {
-      return {
-        'id': i['id'],
-        'type': i['type'],
-        'price': i['price'],
-        'quantity': i['quantity'],
-      };
-    }).toList();
+    final items = selectedItems
+        .map((i) => {
+              'id': i['id'],
+              'type': i['type'],
+              'price': i['price'],
+              'quantity': i['quantity'],
+            })
+        .toList();
 
     try {
       await widget.orderService.createOrder(
@@ -181,91 +152,97 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
         balance: balance,
         progress: progressStatus,
         isRush: isRush,
-        claimableDate: claimableDate, // timestamptz
+        claimableDate: claimableDate,
         items: items,
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order created successfully')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Order created successfully')));
 
       await Future.delayed(const Duration(seconds: 1));
       widget.onBack();
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => submitting = false);
     }
   }
 
+  /// ================= UI =================
   @override
   Widget build(BuildContext context) {
     if (loading) return const Center(child: CircularProgressIndicator());
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ListView(
+    return Scaffold(
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
+          /// HEADER
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBack,
               ),
+              const SizedBox(width: 8),
               const Text(
                 'Custom Order',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-
           const SizedBox(height: 16),
 
           /// CUSTOMER
-          CustomerSelector(
-            customers: customers,
-            selectedCustomerId: selectedCustomerId,
-            onCustomerSelected: (id) => setState(() => selectedCustomerId = id),
-            onAddCustomer: (data) async {
-              // data = {'name': '...', 'phone': '...'}
-              final newCustomerId = await widget.customerService.addCustomer(
-                name: data['name']!,
-                phone: data['phone']!,
-              );
-              setState(() => selectedCustomerId = newCustomerId);
-              _loadData();
-            },
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Customer', style: AppTextStyles.sectionTitle),
+                  const Divider(),
+                  CustomerSelector(
+                    customers: customers,
+                    selectedCustomerId: selectedCustomerId,
+                    onCustomerSelected: (id) =>
+                        setState(() => selectedCustomerId = id),
+                    onAddCustomer: (data) async {
+                      final newCustomerId =
+                          await widget.customerService.addCustomer(
+                        name: data['name']!,
+                        phone: data['phone']!,
+                      );
+                      setState(() => selectedCustomerId = newCustomerId);
+                      _loadData();
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
 
           if (selectedCustomerId != null) ...[
             const SizedBox(height: 16),
 
-            /// RUSH CHECKBOX
+            /// RUSH ORDER
             CheckboxListTile(
               value: isRush,
               onChanged: (v) => setState(() => isRush = v ?? false),
-              title: const Text('Rush Order'),
-              subtitle: const Text('Adds ₱50 to total'),
+              title: Text('Rush Order', style: AppTextStyles.itemTitle),
+              subtitle: Text('Adds ₱50', style: AppTextStyles.labelText),
               secondary: const Icon(Icons.flash_on, color: Colors.red),
             ),
 
+            const Divider(),
+
             /// CLAIMABLE DATE
-            ListTile(
-              title: const Text('Claimable Date'),
-              subtitle: Text(
-                claimableDate == null
-                    ? 'Select date'
-                    : claimableDate!.toLocal().toString(),
-              ),
-              trailing: const Icon(Icons.calendar_today),
+            ClaimableDateTile(
+              date: claimableDate,
               onTap: pickClaimableDate,
             ),
 
-            const Divider(),
+            const SizedBox(height: 16),
 
             /// SERVICES / PRODUCTS TOGGLE
             Row(
@@ -285,13 +262,14 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
 
             const SizedBox(height: 16),
 
+            /// SERVICE/PRODUCT SELECTION
             Wrap(
               spacing: 12,
+              runSpacing: 12,
               children: (showServices ? services : products).map((item) {
                 final type = showServices ? 'service' : 'product';
-                final selected = selectedItems.any(
-                  (i) => i['id'] == item['id'] && i['type'] == type,
-                );
+                final selected = selectedItems
+                    .any((i) => i['id'] == item['id'] && i['type'] == type);
                 return ChoiceChip(
                   label: Text('${item['name']} (₱${item['price']})'),
                   selected: selected,
@@ -301,38 +279,92 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
             ),
 
             if (selectedItems.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              ...selectedItems.map(
-                (i) => ListTile(
-                  title: Text(i['name']),
-                  subtitle: Text('₱${i['price']}'),
-                  trailing: SizedBox(
-                    width: 80,
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Qty'),
-                      onChanged: (v) => updateQuantity(i['id'], i['type'], v),
+              const SizedBox(height: 16),
+
+              /// SELECTED ITEMS
+              Card(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Selected Items', style: AppTextStyles.sectionTitle),
+                      ),
                     ),
+                    const Divider(),
+                    ...selectedItems.map(
+                      (i) => ListTile(
+                        title: Text(i['name'], style: AppTextStyles.itemTitle),
+                        subtitle: Text('₱${i['price']}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: () =>
+                                  updateQuantity(i['id'], i['quantity'] - 1),
+                            ),
+                            Text(i['quantity'].toString(),
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline),
+                              onPressed: () =>
+                                  updateQuantity(i['id'], i['quantity'] + 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// PAYMENT SUMMARY
+              Card(
+                color: Colors.grey.shade50,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Payment Summary', style: AppTextStyles.sectionTitle),
+                      const SizedBox(height: 12),
+                      Text('Total: ${formatCurrency(totalAmount)}',
+                          style: AppTextStyles.paymentTotal),
+                      const SizedBox(height: 6),
+                      Text('Balance: ${formatCurrency(balance)}',
+                          style: AppTextStyles.paymentBalance),
+                      const SizedBox(height: 12),
+                      TextField(
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Cash Given'),
+                        onChanged: (v) =>
+                            setState(() => cashGiven = double.tryParse(v) ?? 0),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 8),
-              Text('Total: ₱${totalAmount.toStringAsFixed(2)}'),
-              Text('Balance: ₱${balance.toStringAsFixed(2)}'),
-              TextField(
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Cash Given'),
-                onChanged: (v) =>
-                    setState(() => cashGiven = double.tryParse(v) ?? 0),
-              ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 16),
+              /// CONFIRM BUTTON
               ElevatedButton(
                 onPressed: submitting ? null : submitOrder,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 child: submitting
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Confirm & Create Order'),
+                    : const Text('CONFIRM & CREATE ORDER'),
               ),
             ],
           ],

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/service/main.dart';
+import 'package:laundry_pos/screens/components/customer.dart';
+import 'package:laundry_pos/screens/components/package_selector.dart';
+import 'package:laundry_pos/screens/components/claimable.dart';
+import 'package:laundry_pos/helpers/utils.dart';
+import 'package:laundry_pos/styles.dart';
+import 'package:laundry_pos/helpers/functions.dart';
 
 class PackageOrderScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -20,20 +26,20 @@ class PackageOrderScreen extends StatefulWidget {
 }
 
 class _PackageOrderScreenState extends State<PackageOrderScreen> {
+  /// ================= STATE =================
   List<Map<String, dynamic>> customers = [];
   List<Map<String, dynamic>> packages = [];
-  bool submitting = false;
-
-  String? selectedCustomerId;
-
-  /// id, name, price, quantity (manual)
   List<Map<String, dynamic>> selectedPackages = [];
 
+  String? selectedCustomerId;
+  bool loading = true;
+  bool submitting = false;
   bool isRush = false;
   String progressStatus = 'pending';
   double cashGiven = 0;
+  DateTime? claimableDate;
 
-  bool loading = true;
+  static const double rushFee = 50;
 
   @override
   void initState() {
@@ -43,39 +49,23 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
 
   Future<void> _loadData() async {
     setState(() => loading = true);
-    try {
-      customers = List<Map<String, dynamic>>.from(
-        await widget.customerService.getAllCustomers(),
-      );
-      packages = List<Map<String, dynamic>>.from(
-        await widget.packageService.getAllPackages(),
-      );
-    } finally {
-      setState(() => loading = false);
-    }
-  }
-
-  double get totalAmount {
-    return selectedPackages.fold(
-      0,
-      (sum, p) => sum + (p['price'] as num).toDouble() * (p['quantity'] as int),
+    customers = List<Map<String, dynamic>>.from(
+      await widget.customerService.getAllCustomers(),
     );
+    packages = List<Map<String, dynamic>>.from(
+      await widget.packageService.getAllPackages(),
+    );
+    setState(() => loading = false);
   }
 
-  double get balance {
-    final b = totalAmount - cashGiven;
-    return b < 0 ? 0 : b;
-  }
+  /// ================= COMPUTED =================
+  double get totalAmount => calculateTotal(selectedPackages, isRush: isRush);
+  double get balance => calculateBalance(totalAmount, cashGiven);
 
-  double get change {
-    final c = cashGiven - totalAmount;
-    return c < 0 ? 0 : c;
-  }
-
+  /// ================= ACTIONS =================
   void togglePackage(Map<String, dynamic> pkg) {
     setState(() {
       final index = selectedPackages.indexWhere((p) => p['id'] == pkg['id']);
-
       if (index >= 0) {
         selectedPackages.removeAt(index);
       } else {
@@ -83,202 +73,276 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
           'id': pkg['id'],
           'name': pkg['name'],
           'price': pkg['total_price'],
-          'quantity': 1, // default
+          'quantity': 1,
         });
       }
     });
   }
 
-  void updateQuantity(String id, String value) {
-    final q = int.tryParse(value) ?? 1;
+  void updateQuantity(String id, int value) {
     setState(() {
-      final pkg = selectedPackages.firstWhere((p) => p['id'] == id);
-      pkg['quantity'] = q < 1 ? 1 : q;
+      final p = selectedPackages.firstWhere((x) => x['id'] == id);
+      p['quantity'] = value < 1 ? 1 : value;
     });
   }
 
-  Future<void> submitOrder() async {
-  if (selectedCustomerId == null || selectedPackages.isEmpty) return;
-
-  final items = selectedPackages.map((p) {
-    return {
-      'id': p['id'],
-      'type': 'package',
-      'price': p['price'],
-      'quantity': p['quantity'],
-    };
-  }).toList();
-
-  try {
-    await widget.orderService.createOrder(
-      customerId: selectedCustomerId!,
-      status: balance == 0 ? 'paid' : 'unpaid',
-      totalAmount: totalAmount,
-      balance: balance,
-      progress: progressStatus,
-      isRush: isRush,
-      items: items,
+  Future<void> pickClaimableDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
     );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Order created successfully')),
-    );
-
-    /// ✅ WAIT 2 SECONDS AFTER SUCCESS
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-    widget.onBack();
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $e')),
-    );
+    if (picked != null) {
+      setState(() {
+        claimableDate = DateTime(picked.year, picked.month, picked.day, 17);
+      });
+    }
   }
-}
 
+  Future<void> submitOrder() async {
+    if (selectedCustomerId == null ||
+        selectedPackages.isEmpty ||
+        claimableDate == null ||
+        submitting) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all required fields')),
+      );
+      return;
+    }
+
+    setState(() => submitting = true);
+
+    try {
+      await widget.orderService.createOrder(
+        customerId: selectedCustomerId!,
+        status: balance == 0 ? 'paid' : 'unpaid',
+        totalAmount: totalAmount,
+        balance: balance,
+        progress: progressStatus,
+        isRush: isRush,
+        items: selectedPackages
+            .map(
+              (p) => {
+                'id': p['id'],
+                'type': 'package',
+                'price': p['price'],
+                'quantity': p['quantity'],
+              },
+            )
+            .toList(),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order created successfully')),
+      );
+
+      await Future.delayed(const Duration(seconds: 1));
+      widget.onBack();
+    } finally {
+      if (mounted) setState(() => submitting = false);
+    }
+  }
+
+  /// ================= UI =================
   @override
   Widget build(BuildContext context) {
     if (loading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ListView(
+    return Scaffold(
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          // HEADER
+          /// HEADER
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBack,
               ),
+              const SizedBox(width: 8),
               const Text(
-                'Create Order',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                'Package Order',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-
           const SizedBox(height: 16),
 
-          // CUSTOMER
-          if (selectedCustomerId == null) ...[
-            const Text(
-              'Select Customer',
-              style: TextStyle(fontWeight: FontWeight.bold),
+          /// CUSTOMER SECTION
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Customer', style: AppTextStyles.sectionTitle),
+                  const Divider(thickness: 1),
+                  CustomerSelector(
+                    customers: customers,
+                    selectedCustomerId: selectedCustomerId,
+                    onCustomerSelected: (id) =>
+                        setState(() => selectedCustomerId = id),
+                    onAddCustomer: (data) async {
+                      final newId = await widget.customerService.addCustomer(
+                        name: data['name']!,
+                        phone: data['phone']!,
+                      );
+                      setState(() => selectedCustomerId = newId);
+                      _loadData();
+                    },
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            ...customers.map(
-              (c) => ListTile(
-                title: Text(c['name']),
-                subtitle: Text(c['phone']),
-                onTap: () =>
-                    setState(() => selectedCustomerId = c['id'].toString()),
+          ),
+
+          if (selectedCustomerId != null) ...[
+            const SizedBox(height: 16),
+
+            /// OPTIONS: RUSH + CLAIMABLE DATE
+            Card(
+              child: Column(
+                children: [
+                  CheckboxListTile(
+                    value: isRush,
+                    onChanged: (v) => setState(() => isRush = v ?? false),
+                    title: Text('Rush Order', style: AppTextStyles.itemTitle),
+                    subtitle: Text('Adds ₱50', style: AppTextStyles.labelText),
+                    secondary: const Icon(
+                      Icons.flash_on,
+                      color: Colors.red,
+                      size: 28,
+                    ),
+                  ),
+                  const Divider(),
+                  ClaimableDateTile(
+                    date: claimableDate,
+                    onTap: pickClaimableDate,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// PACKAGE SELECTOR
+            Card(
+              child: PackageSelector(
+                packages: packages,
+                selectedPackages: selectedPackages,
+                onToggle: togglePackage,
               ),
             ),
           ],
 
-          // PACKAGES
-          if (selectedCustomerId != null) ...[
-            const SizedBox(height: 24),
-            const Text(
-              'Select Packages',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: packages.map((p) {
-                final selected = selectedPackages.any(
-                  (x) => x['id'] == p['id'],
-                );
-                return ChoiceChip(
-                  label: Text('${p['name']} (₱${p['total_price']})'),
-                  selected: selected,
-                  onSelected: (_) => togglePackage(p),
-                );
-              }).toList(),
-            ),
-          ],
-
-          // MANUAL QUANTITY + PAYMENT
           if (selectedPackages.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            const Text(
-              'Packages & Quantity',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            const SizedBox(height: 16),
 
-            ...selectedPackages.map(
-              (p) => Card(
-                child: ListTile(
-                  title: Text(p['name']),
-                  subtitle: Text('₱${p['price']} each'),
-                  trailing: SizedBox(
-                    width: 80,
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Qty'),
-                      onChanged: (v) => updateQuantity(p['id'], v),
+            /// SELECTED PACKAGES
+            Card(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Selected Packages',
+                          style: AppTextStyles.sectionTitle),
                     ),
                   ),
+                  const Divider(),
+                  ...selectedPackages.map(
+                    (p) => ListTile(
+                      title: Text(p['name'], style: AppTextStyles.itemTitle),
+                      subtitle:
+                          Text('₱${p['price']} each', style: AppTextStyles.priceText),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () =>
+                                updateQuantity(p['id'], p['quantity'] - 1),
+                          ),
+                          Text(
+                            p['quantity'].toString(),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () =>
+                                updateQuantity(p['id'], p['quantity'] + 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// PAYMENT
+            Card(
+              color: Colors.grey.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Payment Summary', style: AppTextStyles.sectionTitle),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Total: ${formatCurrency(totalAmount)}',
+                      style: AppTextStyles.paymentTotal,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Balance: ${formatCurrency(balance)}',
+                      style: AppTextStyles.paymentBalance,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 18),
+                      decoration: const InputDecoration(
+                        labelText: 'Cash Given',
+                        labelStyle: TextStyle(fontSize: 16),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) =>
+                          setState(() => cashGiven = double.tryParse(v) ?? 0),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 16),
-            Text('Total: ₱${totalAmount.toStringAsFixed(2)}'),
+            const SizedBox(height: 24),
 
-            TextField(
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Cash Given'),
-              onChanged: (v) =>
-                  setState(() => cashGiven = double.tryParse(v) ?? 0),
-            ),
-
-            const SizedBox(height: 8),
-            Text(
-              'Change: ₱${change.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.green),
-            ),
-            Text(
-              'Balance: ₱${balance.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.red),
-            ),
-
-            DropdownButtonFormField<String>(
-              value: progressStatus,
-              decoration: const InputDecoration(labelText: 'Progress'),
-              items: ['pending', 'ongoing', 'done']
-                  .map(
-                    (p) => DropdownMenuItem(
-                      value: p,
-                      child: Text(p.toUpperCase()),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => progressStatus = v!),
-            ),
-
-            const SizedBox(height: 16),
+            /// CONFIRM BUTTON
             ElevatedButton(
               onPressed: submitting ? null : submitOrder,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               child: submitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Confirm & Create Order'),
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('CONFIRM & CREATE ORDER'),
             ),
           ],
         ],
