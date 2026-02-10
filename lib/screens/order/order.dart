@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../service/main.dart';
 import 'package.dart';
 import 'custom.dart';
-import 'package:laundry_pos/screens/components/details.dart';
+import 'package:laundry_pos/screens/components/components.dart';
 enum OrderView { menu, package, custom }
 
 class OrderScreen extends StatefulWidget {

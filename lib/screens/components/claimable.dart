@@ -20,7 +20,7 @@ class ClaimableDateTile extends StatelessWidget {
       ),
       subtitle: Text(
         date == null ? 'Tap to select date' : formatDate(date!),
-        style: const TextStyle(fontSize: 15),
+        style: const TextStyle(fontSize: 20),
       ),
       trailing: const Icon(Icons.calendar_today),
       onTap: onTap,

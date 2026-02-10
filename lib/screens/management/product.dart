@@ -61,7 +61,6 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
 
     _currentPage = page;
   } catch (e, st) {
-    print('❌ Error loading products: $e\n$st');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error loading products: $e')),
     );

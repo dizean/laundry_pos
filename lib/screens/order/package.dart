@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/service/main.dart';
-import 'package:laundry_pos/screens/components/customer.dart';
-import 'package:laundry_pos/screens/components/package_selector.dart';
-import 'package:laundry_pos/screens/components/claimable.dart';
+import 'package:laundry_pos/screens/components/components.dart';
 import 'package:laundry_pos/helpers/utils.dart';
 import 'package:laundry_pos/styles.dart';
-import 'package:laundry_pos/helpers/functions.dart';
 
 class PackageOrderScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -30,7 +27,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
   List<Map<String, dynamic>> customers = [];
   List<Map<String, dynamic>> packages = [];
   List<Map<String, dynamic>> selectedPackages = [];
-
+  late final TextEditingController cashController;
   String? selectedCustomerId;
   bool loading = true;
   bool submitting = false;
@@ -39,12 +36,17 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
   double cashGiven = 0;
   DateTime? claimableDate;
 
-  static const double rushFee = 50;
-
   @override
   void initState() {
     super.initState();
+    cashController = TextEditingController();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    cashController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -175,59 +177,44 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
           const SizedBox(height: 16),
 
           /// CUSTOMER SECTION
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Customer', style: AppTextStyles.sectionTitle),
-                  const Divider(thickness: 1),
-                  CustomerSelector(
-                    customers: customers,
-                    selectedCustomerId: selectedCustomerId,
-                    onCustomerSelected: (id) =>
-                        setState(() => selectedCustomerId = id),
-                    onAddCustomer: (data) async {
-                      final newId = await widget.customerService.addCustomer(
-                        name: data['name']!,
-                        phone: data['phone']!,
-                      );
-                      setState(() => selectedCustomerId = newId);
-                      _loadData();
-                    },
-                  ),
-                ],
-              ),
-            ),
+          CustomerSelector(
+            customers: customers,
+            selectedCustomerId: selectedCustomerId,
+            onCustomerSelected: (id) {
+              setState(() {
+                if (id == '__RESET__') {
+                  selectedCustomerId = null;
+                  selectedPackages.clear();
+                } else {
+                  selectedCustomerId = id;
+                }
+              });
+            },
+            onAddCustomer: (data) async {
+              final newId = await widget.customerService.addCustomer(
+                name: data['name']!,
+                phone: data['phone']!,
+              );
+              setState(() => selectedCustomerId = newId);
+              _loadData();
+            },
           ),
-
           if (selectedCustomerId != null) ...[
             const SizedBox(height: 16),
 
             /// OPTIONS: RUSH + CLAIMABLE DATE
-            Card(
-              child: Column(
-                children: [
-                  CheckboxListTile(
-                    value: isRush,
-                    onChanged: (v) => setState(() => isRush = v ?? false),
-                    title: Text('Rush Order', style: AppTextStyles.itemTitle),
-                    subtitle: Text('Adds ₱50', style: AppTextStyles.labelText),
-                    secondary: const Icon(
-                      Icons.flash_on,
-                      color: Colors.red,
-                      size: 28,
-                    ),
-                  ),
-                  const Divider(),
-                  ClaimableDateTile(
-                    date: claimableDate,
-                    onTap: pickClaimableDate,
-                  ),
-                ],
-              ),
+            CheckboxListTile(
+              value: isRush,
+              onChanged: (v) => setState(() => isRush = v ?? false),
+              title: Text('Rush Order', style: AppTextStyles.itemTitle),
+              subtitle: Text('Adds ₱50', style: AppTextStyles.labelText),
+              // secondary: const Icon(Icons.flash_on, color: Colors.red),
             ),
+
+            const Divider(),
+
+            /// CLAIMABLE DATE
+            ClaimableDateTile(date: claimableDate, onTap: pickClaimableDate),
 
             const SizedBox(height: 16),
 
@@ -245,87 +232,21 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
             const SizedBox(height: 16),
 
             /// SELECTED PACKAGES
-            Card(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('Selected Packages',
-                          style: AppTextStyles.sectionTitle),
-                    ),
-                  ),
-                  const Divider(),
-                  ...selectedPackages.map(
-                    (p) => ListTile(
-                      title: Text(p['name'], style: AppTextStyles.itemTitle),
-                      subtitle:
-                          Text('₱${p['price']} each', style: AppTextStyles.priceText),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () =>
-                                updateQuantity(p['id'], p['quantity'] - 1),
-                          ),
-                          Text(
-                            p['quantity'].toString(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () =>
-                                updateQuantity(p['id'], p['quantity'] + 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            SelectedPackagesCard(
+              selectedPackages: selectedPackages,
+              onUpdateQuantity: updateQuantity,
             ),
 
             const SizedBox(height: 16),
 
             /// PAYMENT
-            Card(
-              color: Colors.grey.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Payment Summary', style: AppTextStyles.sectionTitle),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Total: ${formatCurrency(totalAmount)}',
-                      style: AppTextStyles.paymentTotal,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Balance: ${formatCurrency(balance)}',
-                      style: AppTextStyles.paymentBalance,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 18),
-                      decoration: const InputDecoration(
-                        labelText: 'Cash Given',
-                        labelStyle: TextStyle(fontSize: 16),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (v) =>
-                          setState(() => cashGiven = double.tryParse(v) ?? 0),
-                    ),
-                  ],
-                ),
-              ),
+            PaymentSummaryCard(
+              totalAmount: totalAmount,
+              balance: balance,
+              cashController: cashController,
+              onCashChanged: (value) {
+                setState(() => cashGiven = value);
+              },
             ),
 
             const SizedBox(height: 24),

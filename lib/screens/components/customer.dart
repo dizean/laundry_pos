@@ -37,7 +37,7 @@ class _CustomerSelectorState extends State<CustomerSelector> {
 
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Add New Customer'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -82,15 +82,32 @@ class _CustomerSelectorState extends State<CustomerSelector> {
 
   @override
   Widget build(BuildContext context) {
+    /// SELECTED CUSTOMER VIEW
     if (widget.selectedCustomerId != null) {
-      final selected = widget.customers
-          .firstWhere((c) => c['id'].toString() == widget.selectedCustomerId);
-      return ListTile(
-        title: Text('Customer: ${selected['name']}'),
-        subtitle: Text(selected['phone']),
+      final selected = widget.customers.firstWhere(
+        (c) => c['id'].toString() == widget.selectedCustomerId,
+      );
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: Text(selected['name']),
+            subtitle: Text(selected['phone']),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.swap_horiz),
+            label: const Text('Select Another Customer'),
+            onPressed: () =>
+                widget.onCustomerSelected('__RESET__'),
+          ),
+        ],
       );
     }
 
+    /// SELECTOR VIEW
     final matches = filteredCustomers;
 
     return Column(
@@ -106,7 +123,6 @@ class _CustomerSelectorState extends State<CustomerSelector> {
         ),
         const SizedBox(height: 8),
 
-        /// Show "Add New Customer" button always if callback exists
         if (widget.onAddCustomer != null)
           ElevatedButton.icon(
             onPressed: _showAddCustomerDialog,
@@ -114,11 +130,14 @@ class _CustomerSelectorState extends State<CustomerSelector> {
             label: const Text('Add New Customer'),
           ),
 
-        ...matches.map((c) => ListTile(
-              title: Text(c['name']),
-              subtitle: Text(c['phone']),
-              onTap: () => widget.onCustomerSelected(c['id'].toString()),
-            )),
+        ...matches.map(
+          (c) => ListTile(
+            title: Text(c['name']),
+            subtitle: Text(c['phone']),
+            onTap: () =>
+                widget.onCustomerSelected(c['id'].toString()),
+          ),
+        ),
       ],
     );
   }

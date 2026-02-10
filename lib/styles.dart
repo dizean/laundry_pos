@@ -18,7 +18,7 @@ class AppTextStyles {
   );
 
   static const TextStyle labelText = TextStyle(
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: FontWeight.w500,
   );
 

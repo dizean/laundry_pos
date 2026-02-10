@@ -6,9 +6,9 @@ import 'management/service.dart';
 import 'management/product.dart';
 import 'management/package.dart';
 import 'order/order.dart';
-import '../../helpers/session.dart';
-import '../../service/main.dart'; 
-
+import 'package:laundry_pos/helpers/session.dart';
+import 'package:laundry_pos/service/main.dart'; 
+import 'management/transactions.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -162,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         case 6:
           return const StaffManagementScreen();
         case 7:
-          return const CustomerManagementScreen();
+          return const TransactionsScreen();
         default:
           return _title("Admin Dashboard");
       }
@@ -190,6 +190,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return const ProductManagementScreen();
         case 4:
           return const PackageScreen();
+        case 5:
+          return const TransactionsScreen();
         default:
           return _title("Select an option");
       }
