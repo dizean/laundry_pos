@@ -16,3 +16,46 @@ String hashPassword(String password) {
   final digest = sha256.convert(bytes);
   return digest.toString();
 }
+enum TransactionStatus { all, pending, ongoing, done }
+
+extension TransactionStatusX on TransactionStatus {
+  String get label {
+    switch (this) {
+      case TransactionStatus.pending:
+        return 'Pending';
+      case TransactionStatus.ongoing:
+        return 'Ongoing';
+      case TransactionStatus.done:
+        return 'Done';
+      case TransactionStatus.all:
+        return 'All';
+    }
+  }
+
+  String? get value {
+    switch (this) {
+      case TransactionStatus.pending:
+        return 'pending';
+      case TransactionStatus.ongoing:
+        return 'ongoing';
+      case TransactionStatus.done:
+        return 'done';
+      case TransactionStatus.all:
+        return null;
+    }
+  }
+
+  /// Optional: Convert string from database to enum
+  static TransactionStatus fromString(String? value) {
+    switch (value) {
+      case 'pending':
+        return TransactionStatus.pending;
+      case 'ongoing':
+        return TransactionStatus.ongoing;
+      case 'done':
+        return TransactionStatus.done;
+      default:
+        return TransactionStatus.all;
+    }
+  }
+}

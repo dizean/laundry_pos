@@ -162,7 +162,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         case 6:
           return const StaffManagementScreen();
         case 7:
-          return const TransactionsScreen();
+          return  TransactionsScreen(
+                  orderService: OrderService(),
+                  pageSize: 5,
+                );
         default:
           return _title("Admin Dashboard");
       }
@@ -191,7 +194,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         case 4:
           return const PackageScreen();
         case 5:
-          return const TransactionsScreen();
+          return  TransactionsScreen(
+                  orderService: OrderService(),
+                  pageSize: 10,
+                );
         default:
           return _title("Select an option");
       }
