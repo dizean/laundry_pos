@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:laundry_pos/service/main.dart';
 
 class TransactionCard extends StatelessWidget {
   final Map<String, dynamic> order;

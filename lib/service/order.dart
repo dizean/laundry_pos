@@ -93,9 +93,8 @@ class OrderService {
     try {
       final res = await _supabase.rpc(
         'get_order_details',
-        params: {'p_order_id': orderId},
+        params: {'p_order_id': orderId}
       );
-
       if (res == null) return [];
       return List<Map<String, dynamic>>.from(
         (res as List).map((e) => Map<String, dynamic>.from(e)),
