@@ -44,24 +44,25 @@ class OrderService {
   return res as String;
 }
   /// Update order status or progress
-  Future<void> updateOrderStatus({
-    required String orderId,
-    String? status,
-    String? progress,
-  }) async {
-    try {
-      await _supabase.rpc(
-        'update_order_status',
-        params: {
-          'p_order_id': orderId,
-          'p_status': status,
-          'p_progress': progress,
-        },
-      );
-    } catch (e) {
-      rethrow;
-    }
+  Future<void> updateOrder({
+  required String orderId,
+  String? progress,
+  double? balance,
+}) async {
+  try {
+    final res = await _supabase.rpc(
+      'update_order_status',
+      params: {
+        'p_order_id': orderId,
+        'p_progress': progress,
+        'p_balance': balance,
+      },
+    );
+  } catch (e) {
+    print('RPC error: $e');
+    rethrow;
   }
+}
 
   /// Delete order by ID
   Future<void> deleteOrder(String orderId) async {

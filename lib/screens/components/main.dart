@@ -6,3 +6,4 @@ export 'selected_items.dart';
 export 'payment.dart';
 export 'transaction_list.dart';
 export 'transaction_card.dart';
+export 'order_update.dart';

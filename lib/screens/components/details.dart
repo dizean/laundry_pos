@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/service/main.dart';
+import 'order_update.dart';
 
 Future<void> showOrderDetailsDialog(
   BuildContext context,
@@ -25,8 +26,9 @@ Future<void> showOrderDetailsDialog(
   }
 
   final order = orders.first;
-  final List<Map<String, dynamic>> items =
-      List<Map<String, dynamic>>.from(order['items'] ?? []);
+  final List<Map<String, dynamic>> items = List<Map<String, dynamic>>.from(
+    order['items'] ?? [],
+  );
 
   final screenWidth = MediaQuery.of(context).size.width;
   final screenHeight = MediaQuery.of(context).size.height;
@@ -48,19 +50,16 @@ Future<void> showOrderDetailsDialog(
                     children: [
                       Expanded(child: _receiptSection(order, items)),
                       const SizedBox(height: 16),
-                      _actionButtons(context),
+                      _actionButtons(context, order, orderService),
                     ],
                   )
                 : Row(
                     children: [
-                      Expanded(
-                        flex: 3,
-                        child: _receiptSection(order, items),
-                      ),
+                      Expanded(flex: 3, child: _receiptSection(order, items)),
                       const SizedBox(width: 24),
                       Expanded(
                         flex: 1,
-                        child: _actionButtons(context),
+                        child: _actionButtons(context, order, orderService),
                       ),
                     ],
                   );
@@ -71,7 +70,10 @@ Future<void> showOrderDetailsDialog(
   );
 }
 
+////////////////////////////////////////////////////////////
 /// ================= RECEIPT SECTION =================
+////////////////////////////////////////////////////////////
+
 Widget _receiptSection(
   Map<String, dynamic> order,
   List<Map<String, dynamic>> items,
@@ -85,23 +87,17 @@ Widget _receiptSection(
         children: [
           Text(
             "Order #${order['order_id'].toString().substring(0, 8)}",
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const Divider(height: 24),
 
-          // Customer Info
+          /// Customer Info
           Text("Customer: ${order['customer_name']}"),
           Text("Progress: ${order['progress']}"),
           Text("Rush: ${order['is_rush'] == true ? 'Yes' : 'No'}"),
           const Divider(height: 24),
 
-          const Text(
-            "Items",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text("Items", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
 
           Expanded(
@@ -118,10 +114,12 @@ Widget _receiptSection(
                 final price = (item['price'] is num)
                     ? item['price']
                     : num.tryParse(item['price'].toString()) ?? 0;
+
                 final total = qty * price;
 
-                final List<dynamic> packageItems =
-                    List<dynamic>.from(item['package_items'] ?? []);
+                final List<dynamic> packageItems = List<dynamic>.from(
+                  item['package_items'] ?? [],
+                );
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,14 +150,12 @@ Widget _receiptSection(
                         ),
                         Text(
                           "$qty × ₱$price = ₱$total",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
 
-                    // Package breakdown
+                    /// Package breakdown
                     if (type == 'package' && packageItems.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Padding(
@@ -227,13 +223,26 @@ Widget _receiptSection(
   );
 }
 
+////////////////////////////////////////////////////////////
 /// ================= ACTION BUTTONS =================
-Widget _actionButtons(BuildContext context) {
+////////////////////////////////////////////////////////////
+
+Widget _actionButtons(
+  BuildContext context,
+  Map<String, dynamic> order,
+  OrderService orderService,
+) {
   return Column(
     mainAxisAlignment: MainAxisAlignment.start,
     children: [
       ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: () async {
+          await showDialog(
+            context: context,
+            builder: (_) =>
+                UpdateOrderDialog(order: order, orderService: orderService),
+          );
+        },
         icon: const Icon(Icons.edit),
         label: const Text("Update"),
         style: ElevatedButton.styleFrom(
@@ -254,7 +263,6 @@ Widget _actionButtons(BuildContext context) {
   );
 }
 
-/// Capitalize first letter
 extension StringCasingExtension on String {
   String capitalize() {
     if (isEmpty) return '';
