@@ -58,6 +58,8 @@ class OrderService {
         'p_balance': balance,
       },
     );
+    print("Updating order ID: $orderId");
+    print(res);
   } catch (e) {
     print('RPC error: $e');
     rethrow;
