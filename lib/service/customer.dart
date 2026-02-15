@@ -40,4 +40,16 @@ class CustomerService {
     final response = await _supabase.rpc('get_all_customers');
     return List<Map<String, dynamic>>.from(response);
   }
+ Future<List<Map<String, dynamic>>> getCustomerOrders(String id) async {
+  final response = await _supabase.rpc(
+    'get_customer_orders',
+    params: {'p_customer_id': id},
+  );
+  // Safely map
+  if (response != null && response is List) {
+    return response.map((e) => Map<String, dynamic>.from(e)).toList();
+  } else {
+    return [];
+  }
+}
 }
