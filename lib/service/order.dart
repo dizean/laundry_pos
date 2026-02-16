@@ -50,7 +50,7 @@ class OrderService {
   double? balance,
 }) async {
   try {
-    final res = await _supabase.rpc(
+    await _supabase.rpc(
       'update_order_status',
       params: {
         'p_order_id': orderId,
@@ -58,8 +58,6 @@ class OrderService {
         'p_balance': balance,
       },
     );
-    print("Updating order ID: $orderId");
-    print(res);
   } catch (e) {
     print('RPC error: $e');
     rethrow;

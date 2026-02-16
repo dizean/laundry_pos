@@ -29,20 +29,25 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     _loadProducts();
   }
 
-  Future<void> _loadProducts({int page = 1}) async {
+Future<void> _loadProducts({int page = 1}) async {
+  if (!mounted) return;
   setState(() => _loading = true);
+
   try {
     // Fetch all products once
     if (_allProducts.isEmpty) {
       final rawProducts = await _productService.getAllProducts();
 
-      // Ensure all items are Maps with correct types
+      if (!mounted) return; // ✅ protect after await
+
       _allProducts = rawProducts.map((p) {
         return {
           'id': p['id'].toString(),
           'name': p['name'] ?? '',
           'description': p['description'] ?? '',
-          'price': (p['price'] is num) ? p['price'] : double.tryParse(p['price'].toString()) ?? 0,
+          'price': (p['price'] is num)
+              ? p['price']
+              : double.tryParse(p['price'].toString()) ?? 0,
         };
       }).toList();
 
@@ -59,12 +64,19 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       _products = _allProducts.sublist(from, to);
     }
 
-    _currentPage = page;
-  } catch (e, st) {
+    if (!mounted) return;
+    setState(() {
+      _currentPage = page;
+    });
+
+  } catch (e) {
+    if (!mounted) return; 
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error loading products: $e')),
     );
   } finally {
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 }
