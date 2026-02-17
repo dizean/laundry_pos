@@ -8,10 +8,7 @@ import 'package:laundry_pos/styles.dart';
 class PackageOrderScreen extends StatefulWidget {
   final VoidCallback onBack;
 
-  const PackageOrderScreen({
-    super.key,
-    required this.onBack,
-  });
+  const PackageOrderScreen({super.key, required this.onBack});
 
   @override
   State<PackageOrderScreen> createState() => _PackageOrderScreenState();
@@ -22,7 +19,8 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
   List<Map<String, dynamic>> customers = [];
   List<Map<String, dynamic>> packages = [];
   List<Map<String, dynamic>> selectedPackages = [];
-
+  int _currentPage = 1;
+  final int _perPage = 15;
   late final TextEditingController cashController;
 
   String? selectedCustomerId;
@@ -50,22 +48,29 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
   }
 
   /// ================= LOAD DATA =================
-  Future<void> _loadData() async {
+  Future<void> _loadData({int page = 1}) async {
     final customerService = context.read<CustomerService>();
     final packageService = context.read<PackageService>();
 
     setState(() => loading = true);
 
-    customers = List<Map<String, dynamic>>.from(
-      await customerService.getAllCustomers(),
-    );
+    try {
+      // Load only first 50 customers for selector
+      final offset = (page - 1) * _perPage;
 
-    packages = List<Map<String, dynamic>>.from(
-      await packageService.getAllPackages(),
-    );
+      customers = await customerService.getAllCustomers(
+        limit: _perPage,
+        offset: offset,
+      );
 
-    if (mounted) {
-      setState(() => loading = false);
+      packages = await packageService.getAllPackages(
+      limit: _perPage,
+      offset: (_currentPage - 1) * _perPage,
+    );
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -77,8 +82,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
   /// ================= ACTIONS =================
   void togglePackage(Map<String, dynamic> pkg) {
     setState(() {
-      final index =
-          selectedPackages.indexWhere((p) => p['id'] == pkg['id']);
+      final index = selectedPackages.indexWhere((p) => p['id'] == pkg['id']);
 
       if (index >= 0) {
         selectedPackages.removeAt(index);
@@ -112,8 +116,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
 
     if (picked != null) {
       setState(() {
-        claimableDate =
-            DateTime(picked.year, picked.month, picked.day, 17);
+        claimableDate = DateTime(picked.year, picked.month, picked.day, 17);
       });
     }
   }
@@ -124,9 +127,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
         claimableDate == null ||
         submitting) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please complete all required fields'),
-        ),
+        const SnackBar(content: Text('Please complete all required fields')),
       );
       return;
     }
@@ -158,9 +159,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order created successfully'),
-        ),
+        const SnackBar(content: Text('Order created successfully')),
       );
 
       await Future.delayed(const Duration(seconds: 1));
@@ -176,9 +175,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return Scaffold(
@@ -195,10 +192,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
               const SizedBox(width: 8),
               const Text(
                 'Package Order',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -220,8 +214,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
               });
             },
             onAddCustomer: (data) async {
-              final customerService =
-                  context.read<CustomerService>();
+              final customerService = context.read<CustomerService>();
 
               final newId = await customerService.addCustomer(
                 name: data['name']!,
@@ -239,21 +232,15 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
             /// RUSH OPTION
             CheckboxListTile(
               value: isRush,
-              onChanged: (v) =>
-                  setState(() => isRush = v ?? false),
-              title:
-                  Text('Rush Order', style: AppTextStyles.itemTitle),
-              subtitle:
-                  Text('Adds ₱50', style: AppTextStyles.labelText),
+              onChanged: (v) => setState(() => isRush = v ?? false),
+              title: Text('Rush Order', style: AppTextStyles.itemTitle),
+              subtitle: Text('Adds ₱50', style: AppTextStyles.labelText),
             ),
 
             const Divider(),
 
             /// CLAIMABLE DATE
-            ClaimableDateTile(
-              date: claimableDate,
-              onTap: pickClaimableDate,
-            ),
+            ClaimableDateTile(date: claimableDate, onTap: pickClaimableDate),
 
             const SizedBox(height: 16),
 
@@ -294,17 +281,14 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
             ElevatedButton(
               onPressed: submitting ? null : submitOrder,
               style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 20),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 textStyle: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               child: submitting
-                  ? const CircularProgressIndicator(
-                      color: Colors.white,
-                    )
+                  ? const CircularProgressIndicator(color: Colors.white)
                   : const Text('CONFIRM & CREATE ORDER'),
             ),
           ],

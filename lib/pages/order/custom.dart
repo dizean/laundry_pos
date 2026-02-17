@@ -55,21 +55,32 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
 
   /// ================= LOAD DATA =================
   Future<void> _loadData() async {
-    final customerService = context.read<CustomerService>();
-    final serviceService = context.read<ServiceService>();
-    final productService = context.read<ProductService>();
+  final customerService = context.read<CustomerService>();
+  final serviceService = context.read<ServiceService>();
+  final productService = context.read<ProductService>();
 
-    setState(() => loading = true);
+  setState(() => loading = true);
 
-    try {
-      customers = List<Map<String, dynamic>>.from(await customerService.getAllCustomers());
-      services = List<Map<String, dynamic>>.from(await serviceService.getAllServices());
-      products = List<Map<String, dynamic>>.from(await productService.getAllProducts());
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+  try {
+    // Load only first 50 customers for dropdown selector
+    customers = List<Map<String, dynamic>>.from(
+      await customerService.getAllCustomers(
+        limit: 50,
+        offset: 0,
+      ),
+    );
+
+    services = List<Map<String, dynamic>>.from(
+      await serviceService.getAllServices(),
+    );
+
+    products = List<Map<String, dynamic>>.from(
+      await productService.getAllProducts(),
+    );
+  } finally {
+    if (mounted) setState(() => loading = false);
   }
-
+}
   /// ================= COMPUTED =================
   double get baseTotal => selectedItems.fold(
         0,

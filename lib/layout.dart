@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:laundry_pos/pages/customer/customer.dart';
 import 'package:laundry_pos/pages/order/order.dart';
+import 'package:laundry_pos/pages/package/package.dart';
 import 'sidebar.dart';
 import 'pages/main.dart';
 
@@ -56,9 +58,12 @@ class _MainLayoutState extends State<MainLayout> {
             onPackageTap: () => setState(() => orderView = OrderView.package),
             onCustomTap: () => setState(() => orderView = OrderView.custom),
             onBack: () => setState(() => orderView = OrderView.menu));
-      // case 2:
-      //   return SettingsPage(
-      //       openPage: (page) => _openExternalPage(page));
+      case 2:
+        return CustomerManagementPage(
+            openPage: (page) => _openExternalPage(page));
+      case 3:
+        return PackageManagementPage(
+            openPage: (page) => _openExternalPage(page));
       default:
         return const Center(child: Text("Page not found"));
     }

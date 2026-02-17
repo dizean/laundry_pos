@@ -28,7 +28,8 @@ class Sidebar extends StatelessWidget {
           const SizedBox(height: 30),
           _buildItem(Icons.dashboard, "Dashboard", 0),
           _buildItem(Icons.receipt_long, "Orders", 1),
-          _buildItem(Icons.settings, "Settings", 2),
+          _buildItem(Icons.settings, "Customers", 2),
+          _buildItem(Icons.settings, "Packages", 3),
         ],
       ),
     );

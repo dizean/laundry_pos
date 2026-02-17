@@ -46,10 +46,24 @@ class PackageService {
   }
 
   /// Fetch all packages
-  Future<List<Map<String, dynamic>>> getAllPackages() async {
-    final response = await _supabase.rpc('get_all_packages');
-    return List<Map<String, dynamic>>.from(response);
-  }
+Future<List<Map<String, dynamic>>> getAllPackages({
+  required int limit,
+  required int offset,
+}) async {
+  final response = await _supabase.rpc(
+    'get_all_packages',
+    params: {
+      'p_limit': limit,
+      'p_offset': offset,
+    },
+  );
+
+  if (response == null) return [];
+
+  return (response as List)
+      .map((e) => Map<String, dynamic>.from(e))
+      .toList();
+}
 
   /// Add service to package
   Future<void> addServiceToPackage({
