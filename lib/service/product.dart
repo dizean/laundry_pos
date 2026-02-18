@@ -39,4 +39,22 @@ class ProductService {
     final response = await _supabase.rpc('get_all_products');
     return List<Map<String, dynamic>>.from(response);
   }
+  Future<List<Map<String, dynamic>>> getPaginatedProducts({
+  required int limit,
+  required int offset,
+}) async {
+  final response = await _supabase.rpc(
+    'get_all_products',
+    params: {
+      'p_limit': limit,
+      'p_offset': offset,
+    },
+  );
+
+  if (response == null) return [];
+
+  return (response as List)
+      .map((e) => Map<String, dynamic>.from(e))
+      .toList();
+}
 }

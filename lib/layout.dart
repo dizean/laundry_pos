@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:laundry_pos/pages/customer/customer.dart';
 import 'package:laundry_pos/pages/order/order.dart';
 import 'package:laundry_pos/pages/package/package.dart';
+import 'package:laundry_pos/pages/product/product.dart';
 import 'sidebar.dart';
 import 'pages/main.dart';
 
@@ -63,6 +64,9 @@ class _MainLayoutState extends State<MainLayout> {
             openPage: (page) => _openExternalPage(page));
       case 3:
         return PackageManagementPage(
+            openPage: (page) => _openExternalPage(page));
+      case 4:
+        return ProductManagementPage(
             openPage: (page) => _openExternalPage(page));
       default:
         return const Center(child: Text("Page not found"));

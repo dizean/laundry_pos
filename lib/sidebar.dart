@@ -30,6 +30,7 @@ class Sidebar extends StatelessWidget {
           _buildItem(Icons.receipt_long, "Orders", 1),
           _buildItem(Icons.settings, "Customers", 2),
           _buildItem(Icons.settings, "Packages", 3),
+          _buildItem(Icons.settings, "Products", 4),
         ],
       ),
     );
