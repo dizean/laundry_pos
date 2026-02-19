@@ -3,12 +3,15 @@ import 'package:laundry_pos/pages/customer/customer.dart';
 import 'package:laundry_pos/pages/order/order.dart';
 import 'package:laundry_pos/pages/package/package.dart';
 import 'package:laundry_pos/pages/product/product.dart';
+import 'package:laundry_pos/pages/service/service.dart';
+import 'package:laundry_pos/pages/staff/staff.dart';
 import 'sidebar.dart';
 import 'pages/main.dart';
 
-
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final String? userRole; // 'admin' or 'staff'
+
+  const MainLayout({super.key, required this.userRole});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -37,37 +40,47 @@ class _MainLayoutState extends State<MainLayout> {
 
   Widget _buildPage() {
     if (_externalPage != null) {
-      // Animate the external page
       return AnimatedSwitcher(
-  duration: const Duration(milliseconds: 300),
-  child: KeyedSubtree(
-    key: ValueKey(_externalPage.runtimeType),
-    child: _externalPage!,
-  ),
-);
+        duration: const Duration(milliseconds: 300),
+        child: KeyedSubtree(
+          key: ValueKey(_externalPage.runtimeType),
+          child: _externalPage!,
+        ),
+      );
     }
 
-    // Sidebar pages
     switch (_selectedIndex) {
       case 0:
-        return Dashboard(
-            openPage: (page) => _openExternalPage(page));
+        return Dashboard(openPage: (page) => _openExternalPage(page));
       case 1:
         return OrderScreen(
-            openPage: (page) => _openExternalPage(page),
-            view: orderView,
-            onPackageTap: () => setState(() => orderView = OrderView.package),
-            onCustomTap: () => setState(() => orderView = OrderView.custom),
-            onBack: () => setState(() => orderView = OrderView.menu));
+          openPage: (page) => _openExternalPage(page),
+          view: orderView,
+          onPackageTap: () => setState(() => orderView = OrderView.package),
+          onCustomTap: () => setState(() => orderView = OrderView.custom),
+          onBack: () => setState(() => orderView = OrderView.menu),
+        );
       case 2:
         return CustomerManagementPage(
-            openPage: (page) => _openExternalPage(page));
+          openPage: (page) => _openExternalPage(page),
+        );
       case 3:
         return PackageManagementPage(
-            openPage: (page) => _openExternalPage(page));
+          openPage: (page) => _openExternalPage(page),
+        );
       case 4:
         return ProductManagementPage(
-            openPage: (page) => _openExternalPage(page));
+          openPage: (page) => _openExternalPage(page),
+        );
+      case 5:
+        return ServiceManagementPage(
+          openPage: (page) => _openExternalPage(page),
+        );
+      case 6:
+        if (widget.userRole != "admin") {
+          return const Center(child: Text("Access Denied"));
+        }
+        return StaffManagementPage(openPage: (page) => _openExternalPage(page));
       default:
         return const Center(child: Text("Page not found"));
     }
@@ -81,14 +94,12 @@ class _MainLayoutState extends State<MainLayout> {
       onWillPop: () async {
         if (_externalPage != null) {
           setState(() => _externalPage = null);
-          return false; // prevent default pop
+          return false;
         }
         return true;
       },
       child: Scaffold(
-        appBar: desktop
-            ? null
-            : AppBar(title: const Text("POS App")),
+        appBar: desktop ? null : AppBar(title: const Text("POS App")),
         drawer: desktop
             ? null
             : Drawer(
@@ -98,6 +109,7 @@ class _MainLayoutState extends State<MainLayout> {
                     _onItemTapped(index);
                     Navigator.pop(context);
                   },
+                  userRole: widget.userRole,
                 ),
               ),
         body: Row(
@@ -108,6 +120,7 @@ class _MainLayoutState extends State<MainLayout> {
                 child: Sidebar(
                   selectedIndex: _selectedIndex,
                   onItemSelected: _onItemTapped,
+                  userRole: widget.userRole, // <-- fixed here
                 ),
               ),
             Expanded(child: _buildPage()),

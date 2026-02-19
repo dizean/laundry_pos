@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemSelected;
+  final String? userRole;
 
   const Sidebar({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
+    required this.userRole,
   });
 
   @override
@@ -26,11 +28,17 @@ class Sidebar extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 30),
+
           _buildItem(Icons.dashboard, "Dashboard", 0),
           _buildItem(Icons.receipt_long, "Orders", 1),
-          _buildItem(Icons.settings, "Customers", 2),
-          _buildItem(Icons.settings, "Packages", 3),
-          _buildItem(Icons.settings, "Products", 4),
+          _buildItem(Icons.people, "Customers", 2),
+          _buildItem(Icons.inventory, "Packages", 3),
+          _buildItem(Icons.shopping_bag, "Products", 4),
+          _buildItem(Icons.build, "Services", 5),
+
+          // ✅ Hide Staff menu if logged-in user is staff
+          if (userRole == "admin")
+            _buildItem(Icons.admin_panel_settings, "Staffs", 6),
         ],
       ),
     );

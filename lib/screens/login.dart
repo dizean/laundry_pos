@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/layout.dart';
 import 'package:laundry_pos/service/auth.dart';
+import 'package:laundry_pos/helpers/utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const MainLayout()),
+        MaterialPageRoute(builder: (_) => MainLayout(userRole: userSession.role)),
         (_) => false,
       );
     } catch (e) {
