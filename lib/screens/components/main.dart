@@ -7,4 +7,4 @@ export 'payment.dart';
 export 'transaction_list.dart';
 export 'transaction_card.dart';
 export 'order_update.dart';
-export 'customer_transactions_screen.dart';
+export 'customer_transactions.dart';

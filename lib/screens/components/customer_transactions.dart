@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:laundry_pos/pages/customer/customer.dart';
 import 'package:laundry_pos/service/main.dart';
-import 'details.dart'; 
+import 'details.dart';
 
-class CustomerTransactionsScreen extends StatefulWidget {
+class CustomerTransactionsPage extends StatefulWidget {
   final String customerId;
   final String customerName;
+  final Function(Widget) openPage; // 👈 add this
 
-  const CustomerTransactionsScreen({
+  const CustomerTransactionsPage({
     super.key,
     required this.customerId,
     required this.customerName,
+    required this.openPage, // 👈 requir
   });
 
   @override
-  State<CustomerTransactionsScreen> createState() =>
-      _CustomerTransactionsScreenState();
+  State<CustomerTransactionsPage> createState() =>
+      _CustomerTransactionsPageState();
 }
 
-class _CustomerTransactionsScreenState
-    extends State<CustomerTransactionsScreen> {
-  final CustomerService _customerService = CustomerService();
-  final OrderService _orderService = OrderService(); // 👈 Added
+class _CustomerTransactionsPageState
+    extends State<CustomerTransactionsPage> {
+  final _customerService = CustomerService();
+  final _orderService = OrderService(); // 👈 Added
 
   bool _loading = true;
   List<Map<String, dynamic>> _orders = [];
@@ -33,8 +36,7 @@ class _CustomerTransactionsScreenState
 
   Future<void> _loadOrders() async {
     try {
-      final data =
-          await _customerService.getCustomerOrders(widget.customerId);
+      final data = await _customerService.getCustomerOrders(widget.customerId);
 
       setState(() {
         _orders = data;
@@ -43,9 +45,9 @@ class _CustomerTransactionsScreenState
     } catch (e) {
       setState(() => _loading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading orders: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading orders: $e')));
     }
   }
 
@@ -70,35 +72,40 @@ class _CustomerTransactionsScreenState
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            widget.openPage(CustomerManagementPage(openPage: widget.openPage));
+          },
+        ),
         title: Text("${widget.customerName}'s Transactions"),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _orders.isEmpty
-              ? const Center(child: Text("No transactions found"))
-              : Padding(
-                  padding: EdgeInsets.all(isDesktop ? 32 : 16),
-                  child: isDesktop || isTablet
-                      ? GridView.builder(
-                          itemCount: _orders.length,
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: isDesktop ? 3 : 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 1.4,
-                          ),
-                          itemBuilder: (context, index) {
-                            return _buildOrderCard(_orders[index]);
-                          },
-                        )
-                      : ListView.builder(
-                          itemCount: _orders.length,
-                          itemBuilder: (context, index) {
-                            return _buildOrderCard(_orders[index]);
-                          },
-                        ),
-                ),
+          ? const Center(child: Text("No transactions found"))
+          : Padding(
+              padding: EdgeInsets.all(isDesktop ? 32 : 16),
+              child: isDesktop || isTablet
+                  ? GridView.builder(
+                      itemCount: _orders.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: isDesktop ? 3 : 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.4,
+                      ),
+                      itemBuilder: (context, index) {
+                        return _buildOrderCard(_orders[index]);
+                      },
+                    )
+                  : ListView.builder(
+                      itemCount: _orders.length,
+                      itemBuilder: (context, index) {
+                        return _buildOrderCard(_orders[index]);
+                      },
+                    ),
+            ),
     );
   }
 
@@ -110,17 +117,11 @@ class _CustomerTransactionsScreenState
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
-        showOrderDetailsDialog(
-          context,
-          order['order_id'],
-          _orderService,
-        );
+        showOrderDetailsDialog(context, order['order_id'], _orderService);
       },
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
