@@ -5,6 +5,7 @@ import 'package:laundry_pos/pages/package/package.dart';
 import 'package:laundry_pos/pages/product/product.dart';
 import 'package:laundry_pos/pages/service/service.dart';
 import 'package:laundry_pos/pages/staff/staff.dart';
+import 'package:laundry_pos/pages/transaction/transactions.dart';
 import 'sidebar.dart';
 import 'pages/main.dart';
 
@@ -81,6 +82,10 @@ class _MainLayoutState extends State<MainLayout> {
           return const Center(child: Text("Access Denied"));
         }
         return StaffManagementPage(openPage: (page) => _openExternalPage(page));
+      case 7:
+        return TransactionsPage(
+          openPage: (page) => _openExternalPage(page),
+        );
       default:
         return const Center(child: Text("Page not found"));
     }

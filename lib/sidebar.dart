@@ -35,6 +35,7 @@ class Sidebar extends StatelessWidget {
           _buildItem(Icons.inventory, "Packages", 3),
           _buildItem(Icons.shopping_bag, "Products", 4),
           _buildItem(Icons.build, "Services", 5),
+          _buildItem(Icons.build, "Transactions", 7),
 
           // ✅ Hide Staff menu if logged-in user is staff
           if (userRole == "admin")

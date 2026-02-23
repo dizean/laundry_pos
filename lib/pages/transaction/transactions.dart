@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/service/main.dart';
-import 'package:laundry_pos/screens/components/main.dart';
+// import 'package:laundry_pos/screens/components/main.dart';
 import 'package:laundry_pos/helpers/utils.dart';
-class TransactionsScreen extends StatefulWidget {
-  final OrderService orderService;
-  final int pageSize;
-
-  const TransactionsScreen({
-    super.key,
-    required this.orderService,
-    this.pageSize = 5,
-  });
+class TransactionsPage extends StatefulWidget {
+  final Function(Widget) openPage;
+  const TransactionsPage({super.key, required this.openPage});
 
   @override
-  State<TransactionsScreen> createState() => _TransactionsScreenState();
+  State<TransactionsPage> createState() => _TransactionsPageState();
 }
 
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
+class _TransactionsPageState extends State<TransactionsPage> {
+  final _orderService = OrderService();
   List<Map<String, dynamic>> _allOrders = [];
   bool _loading = true;
+
   int _currentPage = 1;
+  final int _perPage = 10;
+
+  bool get isAdmin => userSession.role == 'admin';
   TransactionStatus _selectedStatus = TransactionStatus.all;
 
   @override
@@ -29,28 +28,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _loadOrders();
   }
 
-  Future<void> _loadOrders() async {
+  Future<void> _loadOrders({int page = 1}) async {
+    if (!mounted) return;
+
     setState(() => _loading = true);
 
-    final orders = await widget.orderService.getAllOrders();
+    try {
+      final orders = await _orderService.getPaginatedOrders(
+        limit: _perPage,
+        offset: (page - 1) * _perPage,
+      );
 
-    orders.sort((a, b) {
-      final rushA = a['is_rush'] == true;
-      final rushB = b['is_rush'] == true;
-      if (rushA != rushB) return rushB ? 1 : -1;
+      if (!mounted) return;
 
-      final dateA = DateTime.parse(a['date_created']);
-      final dateB = DateTime.parse(b['date_created']);
-      return dateB.compareTo(dateA);
-    });
+      setState(() {
+        _allOrders = orders;
+        _currentPage = page;
+      });
+    } catch (e) {
+      if (!mounted) return;
 
-    setState(() {
-      _allOrders = orders;
-      _currentPage = 1;
-      _loading = false;
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading products: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
-
   List<Map<String, dynamic>> get _filteredOrders {
     if (_selectedStatus.value == null) return _allOrders;
 
@@ -59,103 +64,96 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .toList();
   }
 
-  int get _totalPages =>
-      (_filteredOrders.length / widget.pageSize).ceil().clamp(1, 9999);
-
-  List<Map<String, dynamic>> get _currentPageOrders {
-    final start = (_currentPage - 1) * widget.pageSize;
-    final end =
-        (start + widget.pageSize).clamp(0, _filteredOrders.length);
-
-    return _filteredOrders.sublist(start, end);
-  }
-
-  void _nextPage() {
-    if (_currentPage < _totalPages) {
-      setState(() => _currentPage++);
-    }
-  }
-
-  void _previousPage() {
-    if (_currentPage > 1) {
-      setState(() => _currentPage--);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    final bool hasNextPage = _allOrders.length == _perPage;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Transactions",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        _buildFilterBar(),
-        const SizedBox(height: 8),
-        Expanded(
-          child: TransactionsList(
-            orders: _currentPageOrders,
-            onTap: (order) {
-              showOrderDetailsDialog(
-                context,
-                order['order_id'],
-                widget.orderService,
-              );
-            },
-          ),
-        ),
-        if (_totalPages > 1) _buildPagination(),
-      ],
-    );
-  }
-
-  Widget _buildFilterBar() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: TransactionStatus.values.map((status) {
-          final isSelected = status == _selectedStatus;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(status.label),
-              selected: isSelected,
-              onSelected: (_) {
-                setState(() {
-                  _selectedStatus = status;
-                  _currentPage = 1;
-                });
-              },
-            ),
-          );
-        }).toList(),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Products Management'),
       ),
-    );
-  }
-
-  Widget _buildPagination() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(
         children: [
-          TextButton(
-            onPressed: _currentPage > 1 ? _previousPage : null,
-            child: const Text('Previous'),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: MediaQuery.of(context).size.width,
+                      ),
+                      child: DataTable(
+                        columnSpacing: 30,
+                        columns: const [
+                          DataColumn(label: Text('Transaction ID')),
+                          DataColumn(label: Text('Date of Transaction')),
+                          DataColumn(label: Text('Progress')),
+                        ],
+                        rows: _allOrders.isEmpty
+                            ? [
+                                const DataRow(
+                                  cells: [
+                                    DataCell(Text('No data')),
+                                    DataCell(Text('')),
+                                    DataCell(Text('')),
+                                    DataCell(Text('')),
+                                  ],
+                                ),
+                              ]
+                            : _allOrders.map((product) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(product['id'] ?? '')),
+                                    DataCell(
+                                      Text(product['date_created'] ?? ''),
+                                    ),
+                                    DataCell(Text(product['progress'].toString())),
+                                  ],
+                                );
+                              }).toList(),
+                      ),
+                    ),
+                  ),
+
+                  // 🔹 Loader overlay
+                  if (_loading)
+                    const Positioned.fill(
+                      child: ColoredBox(
+                        color: Colors.black12,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(width: 16),
-          Text('Page $_currentPage of $_totalPages'),
-          const SizedBox(width: 16),
-          TextButton(
-            onPressed: _currentPage < _totalPages ? _nextPage : null,
-            child: const Text('Next'),
+
+          // Pagination Controls
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: !_loading && _currentPage > 1
+                      ? () => _loadOrders(page: _currentPage - 1)
+                      : null,
+                  child: const Text('Previous'),
+                ),
+                const SizedBox(width: 16),
+                Text('Page $_currentPage'),
+                const SizedBox(width: 16),
+                TextButton(
+                  onPressed: !_loading && hasNextPage
+                      ? () => _loadOrders(page: _currentPage + 1)
+                      : null,
+                  child: const Text('Next'),
+                ),
+              ],
+            ),
           ),
         ],
       ),

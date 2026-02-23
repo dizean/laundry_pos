@@ -104,4 +104,18 @@ class OrderService {
       rethrow;
     }
   }
+
+    Future<List<Map<String, dynamic>>> getPaginatedOrders({
+    required int limit,
+    required int offset,
+  }) async {
+    final response = await _supabase.rpc(
+      'get_orders_paginated',
+      params: {'p_limit': limit, 'p_offset': offset},
+    );
+
+    if (response == null) return [];
+
+    return (response as List).map((e) => Map<String, dynamic>.from(e)).toList();
+  }
 }

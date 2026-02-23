@@ -8,11 +8,14 @@ class ProductService {
     String? description,
     required double price,
   }) async {
-    await _supabase.rpc('insert_product', params: {
-      'p_name': name,
-      'p_description': description ?? '',
-      'p_price': price,
-    });
+    await _supabase.rpc(
+      'insert_product',
+      params: {
+        'p_name': name,
+        'p_description': description ?? '',
+        'p_price': price,
+      },
+    );
   }
 
   Future<void> updateProduct({
@@ -21,40 +24,37 @@ class ProductService {
     String? description,
     required double price,
   }) async {
-    await _supabase.rpc('update_product', params: {
-      'p_id': id,
-      'p_name': name,
-      'p_description': description ?? '',
-      'p_price': price,
-    });
+    await _supabase.rpc(
+      'update_product',
+      params: {
+        'p_id': id,
+        'p_name': name,
+        'p_description': description ?? '',
+        'p_price': price,
+      },
+    );
   }
 
   Future<void> deleteProduct(String id) async {
-    await _supabase.rpc('delete_product', params: {
-      'p_id': id,
-    });
+    await _supabase.rpc('delete_product', params: {'p_id': id});
   }
 
   Future<List<Map<String, dynamic>>> getAllProducts() async {
     final response = await _supabase.rpc('get_all_products');
     return List<Map<String, dynamic>>.from(response);
   }
+
   Future<List<Map<String, dynamic>>> getPaginatedProducts({
-  required int limit,
-  required int offset,
-}) async {
-  final response = await _supabase.rpc(
-    'get_all_products',
-    params: {
-      'p_limit': limit,
-      'p_offset': offset,
-    },
-  );
+    required int limit,
+    required int offset,
+  }) async {
+    final response = await _supabase.rpc(
+      'get_all_products',
+      params: {'p_limit': limit, 'p_offset': offset},
+    );
 
-  if (response == null) return [];
+    if (response == null) return [];
 
-  return (response as List)
-      .map((e) => Map<String, dynamic>.from(e))
-      .toList();
-}
+    return (response as List).map((e) => Map<String, dynamic>.from(e)).toList();
+  }
 }
