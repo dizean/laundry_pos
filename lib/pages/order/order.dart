@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:laundry_pos/pages/order/custom.dart';
 import 'package:laundry_pos/pages/order/package.dart';
-import 'package:laundry_pos/screens/components/main.dart';
+import 'package:laundry_pos/components/main.dart';
 import 'package:laundry_pos/service/main.dart';
 
 enum OrderView { menu, package, custom }

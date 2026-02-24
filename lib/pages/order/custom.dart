@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:laundry_pos/service/main.dart';
-import 'package:laundry_pos/screens/components/main.dart';
+import 'package:laundry_pos/components/main.dart';
 import 'package:laundry_pos/helpers/utils.dart';
 import 'package:laundry_pos/styles.dart';
 
