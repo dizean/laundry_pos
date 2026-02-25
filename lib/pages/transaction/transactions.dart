@@ -20,7 +20,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
   final int _perPage = 10;
 
   bool get isAdmin => userSession.role == 'admin';
-  TransactionStatus _selectedStatus = TransactionStatus.all;
 
   @override
   void initState() {
@@ -55,13 +54,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
       if (!mounted) return;
       setState(() => _loading = false);
     }
-  }
-  List<Map<String, dynamic>> get _filteredOrders {
-    if (_selectedStatus.value == null) return _allOrders;
-
-    return _allOrders
-        .where((o) => o['progress'] == _selectedStatus.value)
-        .toList();
   }
 
   @override

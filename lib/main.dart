@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/layout.dart';
 import 'package:provider/provider.dart';
-import 'screens/login.dart';
+import 'pages/login/login.dart';
 import 'helpers/session.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
       // Decide which screen to show
       home: userSession.isLoggedIn
           ? MainLayout(userRole: userSession.role) // <-- remove const
-          : const LoginScreen(),
+          : const LoginPage(),
     );
   }
 }
