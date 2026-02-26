@@ -90,8 +90,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                   cells: [
                                     DataCell(Text('No data')),
                                     DataCell(Text('')),
-                                    DataCell(Text('')),
-                                    DataCell(Text('')),
+                                    DataCell(Text(''))
                                   ],
                                 ),
                               ]
