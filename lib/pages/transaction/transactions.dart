@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:laundry_pos/service/main.dart';
 // import 'package:laundry_pos/screens/components/main.dart';
 import 'package:laundry_pos/helpers/utils.dart';
+
 class TransactionsPage extends StatefulWidget {
   final Function(Widget) openPage;
   const TransactionsPage({super.key, required this.openPage});
@@ -9,7 +10,6 @@ class TransactionsPage extends StatefulWidget {
   @override
   State<TransactionsPage> createState() => _TransactionsPageState();
 }
-
 
 class _TransactionsPageState extends State<TransactionsPage> {
   final _orderService = OrderService();
@@ -47,9 +47,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading products: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading transactions: $e')));
     } finally {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -61,9 +61,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final bool hasNextPage = _allOrders.length == _perPage;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Products Management'),
-      ),
+      appBar: AppBar(title: const Text('Products Management')),
       body: Column(
         children: [
           Expanded(
@@ -71,45 +69,79 @@ class _TransactionsPageState extends State<TransactionsPage> {
               padding: const EdgeInsets.all(16),
               child: Stack(
                 children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: MediaQuery.of(context).size.width,
-                      ),
-                      child: DataTable(
-                        columnSpacing: 30,
-                        columns: const [
-                          DataColumn(label: Text('Transaction ID')),
-                          DataColumn(label: Text('Date of Transaction')),
-                          DataColumn(label: Text('Progress')),
-                        ],
-                        rows: _allOrders.isEmpty
-                            ? [
-                                const DataRow(
-                                  cells: [
-                                    DataCell(Text('No data')),
-                                    DataCell(Text('')),
-                                    DataCell(Text(''))
-                                  ],
-                                ),
-                              ]
-                            : _allOrders.map((product) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(product['id'] ?? '')),
-                                    DataCell(
-                                      Text(product['date_created'] ?? ''),
-                                    ),
-                                    DataCell(Text(product['progress'].toString())),
-                                  ],
-                                );
-                              }).toList(),
-                      ),
-                    ),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                            ),
+                            child: DataTable(
+                              columnSpacing: 40,
+                              headingRowColor: MaterialStateProperty.all(
+                                Colors.grey.shade200,
+                              ),
+                              columns: const [
+                                DataColumn(label: Text('Transaction ID')),
+                                DataColumn(label: Text('Date of Transaction')),
+                                DataColumn(label: Text('Progress')),
+                              ],
+                              rows: _allOrders.isEmpty
+                                  ? [
+                                      const DataRow(
+                                        cells: [
+                                          DataCell(Text('No data')),
+                                          DataCell(Text('-')),
+                                          DataCell(Text('-')),
+                                        ],
+                                      ),
+                                    ]
+                                  : _allOrders.map((order) {
+                                      return DataRow(
+                                        cells: [
+                                          DataCell(
+                                            SizedBox(
+                                              width: 120,
+                                              child: Text(
+                                                order['id'] ?? '',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            SizedBox(
+                                              width: 160,
+                                              child: Text(
+                                                order['date_created'] ?? '',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            SizedBox(
+                                              width: 220, // 👈 control width
+                                              child: Text(
+                                                order['progress']?.toString() ??
+                                                    '',
+                                                softWrap: true,
+                                                maxLines: 3,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    }).toList(),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
 
-                  // 🔹 Loader overlay
                   if (_loading)
                     const Positioned.fill(
                       child: ColoredBox(
