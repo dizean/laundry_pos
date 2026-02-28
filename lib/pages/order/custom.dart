@@ -233,7 +233,7 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
             const Divider(),
 
             // CLAIMABLE DATE
-            ClaimableDateTile(date: claimableDate, onTap: pickClaimableDate),
+            ClaimableDate(date: claimableDate, onTap: pickClaimableDate),
             const SizedBox(height: 16),
 
             // TOGGLE SERVICES / PRODUCTS

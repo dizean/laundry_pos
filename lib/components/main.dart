@@ -1,5 +1,5 @@
-export 'claimable.dart';
-export 'customer.dart';
+export 'claimable_date.dart';
+export 'customer_selector.dart';
 export 'details.dart';
 export 'package_selector.dart';
 export 'selected_items.dart';
@@ -7,4 +7,4 @@ export 'payment.dart';
 export 'transaction_list.dart';
 export 'transaction_card.dart';
 export 'order_update.dart';
-export 'customer_transactions.dart';
+export '../pages/customer/transactions.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/pages/customer/customer.dart';
 import 'package:laundry_pos/service/main.dart';
-import 'details.dart';
+import '../../components/details.dart';
 
 class CustomerTransactionsPage extends StatefulWidget {
   final String customerId;

@@ -240,7 +240,7 @@ class _PackageOrderScreenState extends State<PackageOrderScreen> {
             const Divider(),
 
             /// CLAIMABLE DATE
-            ClaimableDateTile(date: claimableDate, onTap: pickClaimableDate),
+            ClaimableDate(date: claimableDate, onTap: pickClaimableDate),
 
             const SizedBox(height: 16),
 

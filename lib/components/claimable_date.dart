@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:laundry_pos/helpers/utils.dart';
 
-class ClaimableDateTile extends StatelessWidget {
+class ClaimableDate extends StatelessWidget {
   final DateTime? date;
   final VoidCallback onTap;
 
-  const ClaimableDateTile({
+  const ClaimableDate({
     super.key,
     required this.date,
     required this.onTap,
