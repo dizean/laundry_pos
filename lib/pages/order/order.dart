@@ -47,8 +47,8 @@ class _OrderScreenState extends State<OrderScreen> {
 
       if (rushA != rushB) return rushB ? 1 : -1;
 
-      final dateA = DateTime.parse(a['date_created']);
-      final dateB = DateTime.parse(b['date_created']);
+      final dateA = DateTime.tryParse(a['date_created'] ?? '') ?? DateTime.now();
+      final dateB = DateTime.tryParse(b['date_created'] ?? '') ?? DateTime.now();
       return dateB.compareTo(dateA);
     });
 
@@ -57,7 +57,6 @@ class _OrderScreenState extends State<OrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     switch (widget.view) {
       case OrderView.menu:
         return _OrderMenu(
@@ -67,14 +66,10 @@ class _OrderScreenState extends State<OrderScreen> {
         );
 
       case OrderView.package:
-        return PackageOrderScreen(
-          onBack: widget.onBack
-        );
+        return PackageOrderScreen(onBack: widget.onBack);
 
       case OrderView.custom:
-        return CustomOrderScreen(
-          onBack: widget.onBack
-        );
+        return CustomOrderScreen(onBack: widget.onBack);
     }
   }
 }
@@ -94,12 +89,14 @@ class _OrderMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 24),
+
+          // ==== Option Cards Fixed ====
           Row(
             children: [
               Expanded(
@@ -122,7 +119,11 @@ class _OrderMenu extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 32),
-          _RecentOrdersSection(recentOrders: recentOrders),
+
+          // ==== Recent Orders List Scrollable ====
+          Expanded(
+            child: _RecentOrdersSection(recentOrders: recentOrders),
+          ),
         ],
       ),
     );
@@ -140,79 +141,69 @@ class _RecentOrdersSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final orderService = context.read<OrderService>();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Recent Orders",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        FutureBuilder<List<Map<String, dynamic>>>(
-          future: recentOrders,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: recentOrders,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-            if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text("Error loading orders"),
-              );
-            }
+        if (snapshot.hasError) {
+          return const Center(child: Text("Error loading orders"));
+        }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(8),
-                child: Text("No recent orders"),
-              );
-            }
+        final orders = snapshot.data ?? [];
 
-            return Column(
-              children: snapshot.data!.map((order) {
-                final isRush = order['is_rush'] == true;
+        if (orders.isEmpty) {
+          return const Center(child: Text("No recent orders"));
+        }
 
-                return Card(
-                  elevation: isRush ? 6 : 2,
-                  color: isRush ? Colors.red.shade50 : null,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: Icon(
-                      isRush ? Icons.flash_on : Icons.receipt_long,
-                      color: isRush ? Colors.red : Colors.grey,
-                    ),
-                    title: Text(
-                      "Order #${order['order_id'].toString().substring(0, 8)}",
-                      style: TextStyle(
-                        fontWeight: isRush ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    subtitle: Text(
-                      "₱${order['total_amount']} • ${order['progress']}",
-                    ),
-                    trailing: isRush
-                        ? const Chip(
-                            label: Text("RUSH"),
-                            backgroundColor: Colors.redAccent,
-                            labelStyle: TextStyle(color: Colors.white),
-                          )
-                        : null,
-                    onTap: () => showOrderDetailsDialog(
-                      context,
-                      order['order_id'],
-                      orderService,
-                    ),
+        return ListView.separated(
+          itemCount: orders.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final order = orders[index];
+            final isRush = order['is_rush'] == true;
+
+            return Card(
+              elevation: isRush ? 6 : 2,
+              color: isRush ? Colors.red.shade50 : null,
+              child: ListTile(
+                leading: Icon(
+                  isRush ? Icons.flash_on : Icons.receipt_long,
+                  color: isRush ? Colors.red : Colors.grey,
+                ),
+                title: Text(
+                  "Order #${order['order_id']?.toString().substring(0, 8) ?? 'N/A'}",
+                  style: TextStyle(
+                    fontWeight:
+                        isRush ? FontWeight.bold : FontWeight.normal,
                   ),
-                );
-              }).toList(),
+                ),
+                subtitle: Text(
+                  "₱${order['total_amount']} • ${order['progress'] ?? ''}",
+                ),
+                trailing: isRush
+                    ? const Chip(
+                        label: Text("RUSH"),
+                        backgroundColor: Colors.redAccent,
+                        labelStyle: TextStyle(color: Colors.white),
+                      )
+                    : null,
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => OrderDetailsDialog(
+                      orderId: order['order_id']?.toString() ?? '',
+                      orderService: orderService,
+                    ),
+                  );
+                },
+              ),
             );
           },
-        ),
-      ],
+        );
+      },
     );
   }
 }

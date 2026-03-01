@@ -20,8 +20,7 @@ class CustomerTransactionsPage extends StatefulWidget {
       _CustomerTransactionsPageState();
 }
 
-class _CustomerTransactionsPageState
-    extends State<CustomerTransactionsPage> {
+class _CustomerTransactionsPageState extends State<CustomerTransactionsPage> {
   final _customerService = CustomerService();
   final _orderService = OrderService(); // 👈 Added
 
@@ -117,7 +116,13 @@ class _CustomerTransactionsPageState
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
-        showOrderDetailsDialog(context, order['order_id'], _orderService);
+        showDialog(
+          context: context,
+          builder: (_) => OrderDetailsDialog(
+            orderId: order['order_id'],
+            orderService: _orderService,
+          ),
+        );
       },
       child: Card(
         elevation: 4,

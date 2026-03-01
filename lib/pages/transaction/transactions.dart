@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:laundry_pos/components/details.dart';
 import 'package:laundry_pos/service/main.dart';
 // import 'package:laundry_pos/screens/components/main.dart';
 import 'package:laundry_pos/helpers/utils.dart';
@@ -110,12 +111,26 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
+                                            onTap: () {
+                                              showDialog(
+                                                context: context,
+                                                builder: (_) =>
+                                                    OrderDetailsDialog(
+                                                      orderId:
+                                                        order['id']!.toString(),
+                                                      orderService:
+                                                          _orderService,
+                                                    ),
+                                              );
+                                            },
                                           ),
                                           DataCell(
                                             SizedBox(
                                               width: 160,
                                               child: Text(
-                                                order['date_created'] ?? '',
+                                                formatDateTime(
+                                                  order['date_created'],
+                                                ),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),

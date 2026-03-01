@@ -7,7 +7,21 @@ export 'functions.dart';
 String formatDate(DateTime date) {
   return DateFormat('MMM d, yyyy').format(date);
 }
+String formatDateTime(dynamic date) {
+  if (date == null) return '';
 
+  DateTime parsedDate;
+
+  if (date is String) {
+    parsedDate = DateTime.parse(date).toLocal();
+  } else if (date is DateTime) {
+    parsedDate = date.toLocal();
+  } else {
+    return '';
+  }
+
+  return DateFormat('MMM dd, yyyy').format(parsedDate);
+}
 String formatCurrency(num value) {
   return '₱${value.toStringAsFixed(2)}';
 }
